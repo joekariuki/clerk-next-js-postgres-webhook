@@ -65,5 +65,9 @@ export async function POST(req: Request) {
     // Add create user in database logic here
   }
 
+  if (evt.type === "user.deleted") {
+    console.log("[DELETED_USER] userId:", evt.data.id);
+    // Add create user in database logic here
+  }
   return new Response("", { status: 200 });
 }
