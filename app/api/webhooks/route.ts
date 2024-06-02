@@ -1,6 +1,9 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { WebhookEvent } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+
+import prismadb from "@/lib/prismadb";
 
 export async function POST(req: Request) {
   // You can find this in the Clerk Dashboard -> Webhooks -> choose the endpoint
@@ -52,8 +55,45 @@ export async function POST(req: Request) {
   // For this guide, you simply log the payload to the console
   const { id } = evt.data;
   const eventType = evt.type;
-  console.log(`Webhook with and ID of ${id} and type of ${eventType}`);
-  console.log("Webhook body:", body);
+
+  if (evt.type === "user.created") {
+    try {
+      const userId = evt.data.id;
+      const email = evt.data.email_addresses[0].email_address;
+      const firstName = evt.data.first_name;
+      const lastName = evt.data.last_name;
+
+      if (!userId) {
+        return new NextResponse("Unauthenticated", { status: 401 });
+      }
+
+      if (!email) {
+        return new NextResponse("Email is required", { status: 400 });
+      }
+
+      if (!firstName) {
+        return new NextResponse("First name is required", { status: 400 });
+      }
+
+      if (!lastName) {
+        return new NextResponse("Last name is required", { status: 400 });
+      }
+
+      const account = await prismadb.user.create({
+        data: {
+          clerkId: userId,
+          email,
+          firstName,
+          lastName,
+        },
+      });
+
+      return NextResponse.json(account);
+    } catch (error) {
+      console.log("[USER_CREATER_ERROR]", error);
+      return new NextResponse("Internal Error", { status: 500 });
+    }
+  }
 
   if (evt.type === "user.updated") {
     console.log("[UPDATED_USER] userId:", evt.data.id);
