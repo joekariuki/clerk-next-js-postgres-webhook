@@ -132,8 +132,23 @@ export async function POST(req: Request) {
   }
 
   if (evt.type === "user.deleted") {
-    console.log("[DELETED_USER] userId:", evt.data.id);
-    // Add create user in database logic here
+    try {
+      const userId = evt.data.id;
+
+      if (!userId) {
+        return new NextResponse("Unauthenticated", { status: 401 });
+      }
+
+      const account = await prismadb.user.delete({
+        where: { clerkId: userId },
+      });
+
+      return NextResponse.json(account);
+    } catch (error) {
+      console.log("[USER_DELETE]", error);
+      return new NextResponse("Internal Error", { status: 500 });
+    }
   }
+
   return new Response("", { status: 200 });
 }
