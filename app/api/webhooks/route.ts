@@ -51,11 +51,7 @@ export async function POST(req: Request) {
     });
   }
 
-  // Do something with the payload
-  // For this guide, you simply log the payload to the console
-  const { id } = evt.data;
-  const eventType = evt.type;
-
+  // Create user in database webhook
   if (evt.type === "user.created") {
     try {
       const userId = evt.data.id;
@@ -95,14 +91,44 @@ export async function POST(req: Request) {
     }
   }
 
+  // Update user in database webhook
   if (evt.type === "user.updated") {
-    console.log("[UPDATED_USER] userId:", evt.data.id);
-    // Add update user in database logic here
-  }
+    try {
+      const userId = evt.data.id;
+      const email = evt.data.email_addresses[0].email_address;
+      const firstName = evt.data.first_name;
+      const lastName = evt.data.last_name;
 
-  if (evt.type === "user.created") {
-    console.log("[CREATED_USER] userId:", evt.data.id);
-    // Add create user in database logic here
+      if (!userId) {
+        return new NextResponse("Unauthenticated", { status: 401 });
+      }
+
+      if (!email) {
+        return new NextResponse("Email is required", { status: 400 });
+      }
+
+      if (!firstName) {
+        return new NextResponse("First name is required", { status: 400 });
+      }
+
+      if (!lastName) {
+        return new NextResponse("Last name is required", { status: 400 });
+      }
+
+      const account = await prismadb.user.update({
+        where: { clerkId: userId },
+        data: {
+          email,
+          firstName,
+          lastName,
+        },
+      });
+
+      return NextResponse.json(account);
+    } catch (error) {
+      console.log("[USER_UPDATE]", error);
+      return new NextResponse("Internal Error", { status: 500 });
+    }
   }
 
   if (evt.type === "user.deleted") {
